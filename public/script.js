@@ -1,32 +1,44 @@
+const PRICE = 9.99
+const LOAD_NUM = 10
+
 new Vue({
     el: '#app',
     data: {
         total: 0,
         items: [],
         cart: [],
+        results: [],
         search: 'anime',
         lastSearch: '',
         loading: false,
-        price: 9.99
+        price: PRICE
     },
     methods: {
+        appendItems: function() {
+            if (this.items.length < this.results.length) {
+                var append = this.results.slice(this.items.length, this.items.length + LOAD_NUM);
+                this.items = this.items.concat(append);
+            }
+        },
         onSubmit: function() {
             this.items = []
             this.loading = true
             this.$http
             .get('/search/'.concat(this.search))
             .then(function (res) {
-                this.items = res.data
+                this.results = res.data
+                this.items = res.data.slice(0, LOAD_NUM)
                 this.lastSearch = this.search
                 this.search = ''
                 this.loading = false
             })
+            this.appendItems()
         },
         addItem: function(index) {
             var item = this.items[index];
             var found = false
             for(var i = 0; i < this.cart.length; i++) {
-                if (this.cart[i]._id === item._id) {
+                if (this.cart[i].title === item.title) {
                     found = true
                     this.cart[i].qty++
                     break
@@ -34,13 +46,12 @@ new Vue({
             }
             if (!found) {
                 this.cart.push({
-                    _id: item._id,
                     title: item.title,
                     qty: 1,
-                    price: item.price
+                    price: PRICE
                 })
             }
-            this.total += this.items[index].price
+            this.total += PRICE
         },
         inc: function(item){
             item.qty++;
@@ -66,5 +77,12 @@ new Vue({
     },
     mounted: function() {
         this.onSubmit()
+
+        var vueInstance = this;
+        var elem = document.getElementById('product-list-bottom');
+        var watcher = scrollMonitor.create(elem)
+        watcher.enterViewport(function () {
+            vueInstance.appendItems()
+        })
     }
 });
